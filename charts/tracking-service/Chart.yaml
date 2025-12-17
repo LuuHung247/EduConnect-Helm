@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tracking-service
+description: User Tracking Service for lesson progress tracking
+type: application
+version: 1.0.0
+appVersion: "1.0"

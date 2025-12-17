@@ -1,0 +1,77 @@
+{{- if .Values.global.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: educonnect-ingress
+  namespace: educonnect
+  labels:
+    {{- include "educonnect.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.global.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.global.ingress.className }}
+  {{- if .Values.global.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.global.domain }}
+      secretName: {{ .Values.global.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.global.domain }}
+      http:
+        paths:
+          # Backend API Gateway - handles /api/v1/* routes
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5001
+
+          # Frontend - serves static files and React app
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+---
+# Separate ingress for API subdomain (optional, if you want api.domain.com)
+{{- if .Values.global.apiSubdomain }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: educonnect-api-ingress
+  namespace: educonnect
+  labels:
+    {{- include "educonnect.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.global.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.global.ingress.className }}
+  {{- if .Values.global.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - api.{{ .Values.global.domain }}
+      secretName: {{ .Values.global.ingress.tls.secretName }}-api
+  {{- end }}
+  rules:
+    - host: api.{{ .Values.global.domain }}
+      http:
+        paths:
+          # Direct access to Backend API
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5001
+{{- end }}
+{{- end }}

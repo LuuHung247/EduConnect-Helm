@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: educonnect
+  labels:
+    app: user-service
+    component: user-management
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+        component: user-management
+    spec:
+      containers:
+        - name: user-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            # Flask Configuration
+            - name: FLASK_APP
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: FLASK_APP
+            - name: FLASK_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: FLASK_ENV
+            - name: PORT
+              value: "5002"
+
+            # MongoDB Configuration
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: MONGODB_URI
+            - name: MONGODB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: MONGODB_NAME
+
+            # AWS Configuration
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: AWS_REGION
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+
+            # Cognito Configuration
+            - name: COGNITO_USER_POOL_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: COGNITO_USER_POOL_ID
+            - name: COGNITO_APP_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: COGNITO_APP_CLIENT_ID
+            - name: JWKS_CACHE_TTL
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: JWKS_CACHE_TTL
+            - name: ALLOW_INSECURE_JWT
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: ALLOW_INSECURE_JWT
+
+            # Service URLs
+            - name: MEDIA_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: MEDIA_SERVICE_URL
+
+            # CORS Configuration
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: CORS_ORIGINS
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: {{ .Values.healthCheck.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: {{ .Values.healthCheck.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

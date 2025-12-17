@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media-service
+  namespace: educonnect
+  labels:
+    app: media-service
+    component: media-storage
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: media-service
+  template:
+    metadata:
+      labels:
+        app: media-service
+        component: media-storage
+    spec:
+      containers:
+        - name: media-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            # MongoDB Configuration
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: MONGODB_URI
+            - name: MONGODB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: MONGODB_NAME
+
+            # AWS Configuration
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: AWS_REGION
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: AWS_S3_BUCKET
+            - name: AWS_SQS_QUEUE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: AWS_SQS_QUEUE_URL
+
+            # AI APIs Configuration
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: GEMINI_API_KEY
+            - name: DEEPSEEK_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: educonnect-secrets
+                  key: DEEPSEEK_API_KEY
+
+            # CORS Configuration
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: educonnect-config
+                  key: CORS_ORIGINS
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: {{ .Values.healthCheck.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: {{ .Values.healthCheck.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

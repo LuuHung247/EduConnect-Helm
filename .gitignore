@@ -1,0 +1,10 @@
+# Ignore generated values files with secrets
+values-generated.yaml
+values-production.yaml
+values.yaml
+# Ignore Helm packages
+*.tgz
+
+# Ignore temp files
+*.tmp
+*.bak

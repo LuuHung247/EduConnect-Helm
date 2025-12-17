@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: educonnect
+  labels:
+    name: educonnect
+    {{- include "educonnect.labels" . | nindent 4 }}
