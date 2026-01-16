@@ -1,4 +1,4 @@
-# EduConnect Helm Chart
+# EduConnect Helm Chart - Test Commit 
 
 Helm chart for deploying EduConnect microservices platform on Kubernetes (K3s).
 
